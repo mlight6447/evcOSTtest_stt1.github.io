@@ -389,8 +389,7 @@ volTrack.addEventListener("pointerup", e => {
 });
 
 /* ============================================================
-   TIMELINE CONTROL
-   Теперь реально привязан к audio.currentTime / audio.duration
+   TIMELINE CONTROL — исправлено
 ============================================================ */
 const timeline      = document.getElementById("timeline");
 const timelineTrack = document.getElementById("timelineTrack");
@@ -405,11 +404,22 @@ function renderTimelinePosition(p){
 
   const rect   = timelineTrack.getBoundingClientRect();
   const radius = timelineThumb.offsetWidth / 2;
+
+  // Защита: если элемент ещё не отрисовался или радиус > половины длины
+  if(rect.width <= 0 || radius >= rect.width / 2){
+    // Ставим в безопасное положение (чуть правее края)
+    const safePos = Math.max(radius, rect.width * 0.01);
+    const safePct = (safePos / rect.width) * 100;
+    timelineFill.style.width = "1%";
+    timelineThumb.style.left = safePct + "%";
+    return;
+  }
+
   const usable = rect.width - radius * 2;
   const lpx    = radius + tlPercent * usable;
   const lpct   = (lpx / rect.width) * 100;
 
-  timelineFill.style.width = lpct + "%";
+  timelineFill.style.width  = lpct + "%";
   timelineThumb.style.left = lpct + "%";
 }
 
@@ -430,7 +440,7 @@ function updateTimelineFromPointer(clientX){
 
 // Автообновление позиции бегунка пока трек играет
 audio.addEventListener("timeupdate", () => {
-  if(tlDragging) return; // не мешаем перетаскиванию
+  if(tlDragging) return;
   if(!isNaN(audio.duration) && audio.duration > 0){
     renderTimelinePosition(audio.currentTime / audio.duration);
   }
@@ -456,8 +466,20 @@ timeline.addEventListener("pointerup", e => {
   tlDragging = false;
 });
 
+/* Инициализация безопасного стартового положения */
+function initTimeline(){
+  renderTimelinePosition(0);
+}
+
+// Ждём полной отрисовки шрифтов и布局
+if(document.readyState === "complete"){
+  initTimeline();
+} else {
+  window.addEventListener("load", initTimeline);
+}
+
 /* ============================================================
-   PLAY / PAUSE — реальное управление аудио
+  PLAY / PAUSE — реальное управление аудио
 ============================================================ */
 const playBtn = document.getElementById("playBtn");
 const btnIcon = document.getElementById("btnIcon");
