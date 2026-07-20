@@ -1,28 +1,492 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Evacuation OST - State Of Anarchy</title>
-    <style>
-        body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #1e1f22; /* тёмный фон как у Discord; для белого замените на #ffffff */
-        }
-        audio {
-            width: 90%;
-            max-width: 500px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evacuation OST - State Of Anarchy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  user-select:none;
+}
+
+body{
+  height:100vh;
+  background:#2b2b2b;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-family:'Instrument Sans', sans-serif;
+}
+
+/* ===== WRAPPER ===== */
+.player-wrapper{
+  position:relative;
+  width:37.45vw;
+  aspect-ratio:719/296;
+}
+
+/* ===== PLAYER FRAME ===== */
+.player-frame{
+  width:100%;
+  height:100%;
+  background:#212121;
+  display:flex;
+  padding:1.666vw;
+  gap:1.666vw;
+  position:relative;
+  z-index:2;
+}
+
+/* ===== ICON FRAME ===== */
+/* Теперь содержит картинку обложки вместо серого фона */
+.icon-frame{
+  flex-shrink:0;
+  width:12.083vw;
+  height:12.083vw;
+  background:#444; /* fallback пока грузится картинка */
+  overflow:hidden;
+}
+
+.icon-frame img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* ===== MAIN PLAYER FRAME ===== */
+.main-player-frame{
+  width:20.363vw;
+  height:12.083vw;
+  background:transparent;
+  display:flex;
+  flex-direction:column;
+  flex-shrink:0;
+  overflow:hidden;
+}
+
+/* ===== TEXT FRAME ===== */
+.text-frame{
+  width:100%;
+  flex-shrink:0;
+  display:flex;
+  flex-direction:column;
+}
+
+.track-title{
+  font-family:'Instrument Sans', sans-serif;
+  font-weight:700;
+  font-size:2.5vw;
+  line-height:1.229;
+  color:#FFFFFF;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.track-subtitle{
+  font-family:'Instrument Sans', sans-serif;
+  font-weight:400;
+  font-size:1.875vw;
+  line-height:1.222;
+  color:#D7D7D7;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.gap-1{
+  flex-shrink:0;
+  height:1.333vw;
+}
+
+/* ===== PLAYER TIMELINE ===== */
+.player-timeline{
+  flex-shrink:0;
+  width:100%;
+  height:1.5vw;
+  display:flex;
+  align-items:center;
+  cursor:pointer;
+  touch-action:none;
+  position:relative;
+}
+
+.timeline-track{
+  position:relative;
+  width:100%;
+  height:0.208vw;
+  background:#373737;
+  border-radius:99px;
+}
+
+.timeline-fill{
+  position:absolute;
+  left:0; top:0;
+  height:100%;
+  width:0%; /* теперь стартуем с 0 — реальный прогресс трека */
+  background:#FF7700;
+  border-radius:99px;
+}
+
+.timeline-thumb{
+  position:absolute;
+  top:50%;
+  left:0%;
+  width:0.833vw;
+  height:0.833vw;
+  background:#FFFFFF;
+  border-radius:50%;
+  transform:translate(-50%, -50%);
+}
+
+.gap-2{
+  flex-shrink:0;
+  height:0.916vw;
+}
+
+/* ===== BUTTON FRAME ===== */
+.button-frame{
+  flex-shrink:0;
+  width:100%;
+  height:2.968vw;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+}
+
+.play-btn{
+  width:2.604vw;
+  height:2.604vw;
+  border-radius:50%;
+  background:#FF7700;
+  border:none;
+  cursor:pointer;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-shrink:0;
+  transition:transform .15s ease, background .15s ease;
+}
+
+.play-btn:hover{
+  transform:scale(1.07);
+}
+.play-btn:active{
+  transform:scale(0.95);
+}
+
+.play-btn.playing{
+  background:#373737;
+}
+
+.play-icon{
+  width:0.9vw;
+  height:1.05vw;
+  background:#212121;
+  clip-path: polygon(0% 0%, 100% 50%, 0% 100%);
+  margin-left:0.15vw;
+  flex-shrink:0;
+}
+
+.pause-icon{
+  display:flex;
+  gap:0.22vw;
+  align-items:center;
+}
+.pause-icon span{
+  display:block;
+  width:0.24vw;
+  height:0.9vw;
+  background:#FF7700;
+  border-radius:1px;
+}
+
+/* ===== SOUNDBAR ===== */
+.soundbar{
+  position:absolute;
+  left:100%; top:0;
+  width:1.875vw;
+  height:100%;
+  background:linear-gradient(to right,#1C1C1C 0%,#212121 50%);
+  border-top-right-radius:0.78vw;
+  border-bottom-right-radius:0.78vw;
+  transform:translateX(-100%);
+  transition:transform .4s ease;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:1;
+}
+.soundbar.open{ transform:translateX(0); }
+
+/* ===== HOVER TRIGGER AREA ===== */
+.hover-trigger-area{
+  position:absolute;
+  left:50%; top:0;
+  width:calc(50% + 1.875vw);
+  height:100%;
+  z-index:10;
+  pointer-events:none;
+}
+
+/* ===== VOLUME TRACK ===== */
+.volume-track{
+  position:relative;
+  width:0.729vw;
+  height:14.0625vw;
+  background:#745235;
+  border-top-right-radius:0.78vw;
+  border-bottom-right-radius:0.78vw;
+  cursor:pointer;
+  touch-action:none;
+}
+.volume-fill{
+  position:absolute;
+  bottom:0; left:0;
+  width:100%;
+  background:#FF7700;
+  border-top-right-radius:0.78vw;
+  border-bottom-right-radius:0.78vw;
+}
+.volume-thumb{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%) translateY(50%);
+  width:1.3vw;
+  height:1.3vw;
+  background:#FFFFFF;
+  border-radius:50%;
+}
+</style>
 </head>
 <body>
-    <audio id="player" controls src="stt.mp3"></audio>
+
+<div class="player-wrapper" id="wrapper">
+
+  <div class="player-frame" id="player">
+
+    <!-- ICON FRAME: обложка трека -->
+    <div class="icon-frame">
+      <img src="st.png" alt="cover">
+    </div>
+
+    <div class="main-player-frame" id="mainPlayerFrame">
+
+      <div class="text-frame">
+        <div class="track-title">State Of Anarchy</div>
+        <div class="track-subtitle">Evacuation OST</div>
+      </div>
+
+      <div class="gap-1"></div>
+
+      <div class="player-timeline" id="timeline">
+        <div class="timeline-track" id="timelineTrack">
+          <div class="timeline-fill"  id="timelineFill"></div>
+          <div class="timeline-thumb" id="timelineThumb"></div>
+        </div>
+      </div>
+
+      <div class="gap-2"></div>
+
+      <div class="button-frame">
+        <button class="play-btn" id="playBtn">
+          <div id="btnIcon" class="play-icon"></div>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="soundbar" id="soundbar">
+    <div class="volume-track" id="volTrack">
+      <div class="volume-fill"  id="volFill"></div>
+      <div class="volume-thumb" id="volThumb"></div>
+    </div>
+  </div>
+
+  <div class="hover-trigger-area" id="triggerArea"></div>
+
+</div>
+
+<!-- Скрытый нативный audio-элемент — используем его API,
+     а визуально управляем через нашу кастомную разметку -->
+<audio id="audioPlayer" src="stt.mp3" preload="metadata"></audio>
+
 <script>
-    document.getElementById('player').volume = 0.5;
+const audio = document.getElementById("audioPlayer");
+
+/* ============================================================
+   VOLUME CONTROL
+   Громкость всегда стартует с 50% при загрузке страницы.
+   Не сохраняем в localStorage специально — по требованию
+   значение должно сбрасываться каждый раз.
+============================================================ */
+const soundbar    = document.getElementById("soundbar");
+const triggerArea = document.getElementById("triggerArea");
+const volTrack    = document.getElementById("volTrack");
+const volFill     = document.getElementById("volFill");
+const volThumb    = document.getElementById("volThumb");
+
+let volDragging = false;
+let volPercent  = 0.5; // ← старт 50%
+
+function applyVolume(p){
+  volPercent = Math.max(0, Math.min(1, p));
+
+  // Реально применяем громкость к аудио
+  audio.volume = volPercent;
+
+  const rect   = volTrack.getBoundingClientRect();
+  const radius = volThumb.offsetWidth / 2;
+  const usable = rect.height - radius * 2;
+  const bpx    = radius + volPercent * usable;
+  const bpct   = (bpx / rect.height) * 100;
+
+  volFill.style.height  = bpct + "%";
+  volThumb.style.bottom = bpct + "%";
+}
+
+function updateVolume(clientY){
+  const rect   = volTrack.getBoundingClientRect();
+  const radius = volThumb.offsetWidth / 2;
+  const usable = rect.height - radius * 2;
+  applyVolume(((rect.bottom - radius) - clientY) / usable);
+}
+
+// Устанавливаем 50% после того как разметка отрисовалась
+requestAnimationFrame(() => applyVolume(volPercent));
+
+document.addEventListener("mousemove", e => {
+  if(volDragging) return;
+  const r = triggerArea.getBoundingClientRect();
+  soundbar.classList.toggle("open",
+    e.clientX >= r.left && e.clientX <= r.right &&
+    e.clientY >= r.top  && e.clientY <= r.bottom
+  );
+});
+
+volTrack.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  volDragging = true;
+  volTrack.setPointerCapture(e.pointerId);
+  soundbar.classList.add("open");
+  updateVolume(e.clientY);
+});
+volTrack.addEventListener("pointermove", e => {
+  if(volTrack.hasPointerCapture(e.pointerId)) updateVolume(e.clientY);
+});
+volTrack.addEventListener("pointerup", e => {
+  volTrack.releasePointerCapture(e.pointerId);
+  volDragging = false;
+});
+
+/* ============================================================
+   TIMELINE CONTROL
+   Теперь реально привязан к audio.currentTime / audio.duration
+============================================================ */
+const timeline      = document.getElementById("timeline");
+const timelineTrack = document.getElementById("timelineTrack");
+const timelineFill  = document.getElementById("timelineFill");
+const timelineThumb = document.getElementById("timelineThumb");
+
+let tlDragging = false;
+let tlPercent  = 0;
+
+function renderTimelinePosition(p){
+  tlPercent = Math.max(0, Math.min(1, p));
+
+  const rect   = timelineTrack.getBoundingClientRect();
+  const radius = timelineThumb.offsetWidth / 2;
+  const usable = rect.width - radius * 2;
+  const lpx    = radius + tlPercent * usable;
+  const lpct   = (lpx / rect.width) * 100;
+
+  timelineFill.style.width = lpct + "%";
+  timelineThumb.style.left = lpct + "%";
+}
+
+// Пересчитываем percent из позиции курсора и сразу двигаем аудио
+function updateTimelineFromPointer(clientX){
+  const rect   = timelineTrack.getBoundingClientRect();
+  const radius = timelineThumb.offsetWidth / 2;
+  const usable = rect.width - radius * 2;
+  const percent = (clientX - (rect.left + radius)) / usable;
+
+  renderTimelinePosition(percent);
+
+  // Двигаем аудио только если известна длительность
+  if(!isNaN(audio.duration)){
+    audio.currentTime = tlPercent * audio.duration;
+  }
+}
+
+// Автообновление позиции бегунка пока трек играет
+audio.addEventListener("timeupdate", () => {
+  if(tlDragging) return; // не мешаем перетаскиванию
+  if(!isNaN(audio.duration) && audio.duration > 0){
+    renderTimelinePosition(audio.currentTime / audio.duration);
+  }
+});
+
+// Когда трек закончился — возвращаем иконку Play
+audio.addEventListener("ended", () => {
+  setPlayingState(false);
+  renderTimelinePosition(0);
+});
+
+timeline.addEventListener("pointerdown", e => {
+  e.preventDefault();
+  tlDragging = true;
+  timeline.setPointerCapture(e.pointerId);
+  updateTimelineFromPointer(e.clientX);
+});
+timeline.addEventListener("pointermove", e => {
+  if(timeline.hasPointerCapture(e.pointerId)) updateTimelineFromPointer(e.clientX);
+});
+timeline.addEventListener("pointerup", e => {
+  timeline.releasePointerCapture(e.pointerId);
+  tlDragging = false;
+});
+
+/* ============================================================
+   PLAY / PAUSE — реальное управление аудио
+============================================================ */
+const playBtn = document.getElementById("playBtn");
+const btnIcon = document.getElementById("btnIcon");
+let isPlaying = false;
+
+function setPlayingState(playing){
+  isPlaying = playing;
+
+  if(isPlaying){
+    playBtn.classList.add("playing");
+    btnIcon.className = "";
+    btnIcon.innerHTML = `<div class="pause-icon"><span></span><span></span></div>`;
+  } else {
+    playBtn.classList.remove("playing");
+    btnIcon.className = "play-icon";
+    btnIcon.innerHTML = "";
+  }
+}
+
+playBtn.addEventListener("click", () => {
+  if(audio.paused){
+    audio.play();
+    setPlayingState(true);
+  } else {
+    audio.pause();
+    setPlayingState(false);
+  }
+});
 </script>
+
 </body>
 </html>
